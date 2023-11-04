@@ -1,16 +1,50 @@
+import uuid
+
 import pytest
 
 from rocketchat_API.APIExceptions.RocketExceptions import RocketMissingParamException
 
 
-def test_rooms_leave(logged_rocket):
-    # TODO:
-    # Create new room
-    # (optional?) test leaving this room and expect failure bc you are the last owner in the room
-    # create new user
-    # assign new user as owner of this new room
-    # then test leaving the room and expect success
-    rooms_leave = logged_rocket.rooms_leave(room_id="GENERAL").json()
+@pytest.fixture
+def testuser_id(logged_rocket):
+    testuser = logged_rocket.users_info(username="testuser1").json()
+    if not testuser.get("success"):
+        testuser = logged_rocket.users_create(
+            "testuser1@domain.com", "testuser1", "password", "testuser1"
+        ).json()
+
+    _testuser_id = testuser.get("user").get("_id")
+
+    yield _testuser_id
+
+    logged_rocket.users_delete(_testuser_id)
+
+
+def test_rooms_leave(logged_rocket, testuser_id):
+    rooms_leave = logged_rocket.rooms_leave("GENERAL").json()
+    assert not rooms_leave.get("success")
+    assert rooms_leave.get("errorType") == "error-you-are-last-owner"
+
+    name = str(uuid.uuid1())
+    channels_create = logged_rocket.channels_create(name).json()
+    assert (
+        logged_rocket.channels_invite(
+            room_id=channels_create.get("channel").get("_id"), user_id=testuser_id
+        )
+        .json()
+        .get("success")
+    )
+
+    assert (
+        logged_rocket.channels_add_owner(
+            channels_create.get("channel").get("_id"), user_id=testuser_id
+        )
+        .json()
+        .get("success")
+    )
+    rooms_leave = logged_rocket.rooms_leave(
+        channels_create.get("channel").get("_id")
+    ).json()
     assert rooms_leave.get("success")
 
 

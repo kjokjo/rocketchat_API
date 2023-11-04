@@ -3,6 +3,17 @@ import pytest
 from rocketchat_API.APIExceptions.RocketExceptions import RocketMissingParamException
 
 
+def test_rooms_leave(logged_rocket):
+    # TODO:
+    # Create new room
+    # (optional?) test leaving this room and expect failure bc you are the last owner in the room
+    # create new user
+    # assign new user as owner of this new room
+    # then test leaving the room and expect success
+    rooms_leave = logged_rocket.rooms_leave(room_id="GENERAL").json()
+    assert rooms_leave.get("success")
+
+
 def test_rooms_upload(logged_rocket):
     rooms_upload = logged_rocket.rooms_upload(
         "GENERAL", file="tests/assets/avatar.png", description="hey there"
